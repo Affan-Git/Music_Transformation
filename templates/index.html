@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TuneShift: Musical Transmutation</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+      color: white;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .container {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 900px;
+      margin: 0 auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      gap: 20px;
+    }
+    .left-panel {
+      flex: 1;
+      text-align: center;
+    }
+    .right-panel {
+      flex: 1;
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    }
+    h2 {
+      font-size: 1.2rem;
+      margin: 10px 0;
+    }
+    form {
+      margin: 20px 0;
+    }
+    label {
+      font-size: 1rem;
+      margin: 10px 0 5px;
+      display: inline-block;
+      color: #fff;
+    }
+    label[for="file-upload"] {
+      display: inline-block;
+      background-color: #ffcc00;
+      color: #333;
+      padding: 12px 18px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s;
+    }
+    label[for="file-upload"]:hover {
+      background-color: #ffaa00;
+      transform: scale(1.05);
+    }
+    input[type="file"],
+    input[type="number"] {
+      padding: 8px;
+      font-size: 1rem;
+      width: 100%;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      background: #333;
+      color: #fff;
+      box-sizing: border-box;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 18px;
+      font-size: 1.1rem;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .input-group {
+      margin-top: 10px;
+      text-align: left;
+    }
+    .flash-message {
+      margin: 20px 0;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 5px;
+    }
+    audio {
+      margin-top: 10px;
+      width: 100%;
+      border-radius: 10px;
+    }
+    #progress-container {
+      width: 100%;
+      background: #ddd;
+      margin-top: 20px;
+      border-radius: 10px;
+    }
+    #progress-bar {
+      width: 0%;
+      height: 20px;
+      background: #4caf50;
+      border-radius: 10px;
+    }
+    .download-btn {
+      margin-top: 20px;
+      padding: 10px 18px;
+      font-size: 1.1rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      display: inline-block;
+    }
+    .download-btn:hover {
+      background-color: #0056b3;
+    }
+    #waveform-original,
+    #waveform-generated {
+      width: 100%;
+      height: 100px;
+      margin-top: 10px;
+    }
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+        max-width: 90%;
+      }
+      .left-panel,
+      .right-panel {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="left-panel">
+      <h1>TuneShift: Upload Your MP3</h1>
+
+      <!-- Flash Message Section -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-message">
+            {% for category, message in messages %}
+              {{ message }}
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form action="/" method="POST" enctype="multipart/form-data">
+        <!-- File Upload -->
+        <label for="file-upload">Choose MP3 File</label>
+        <input type="file" id="file-upload" name="file" accept=".mp3" required>
+
+        <!-- Parameters -->
+        <div class="input-group">
+          <label for="pitch-shift">Pitch Shift (semitones):</label>
+          <input type="number" id="pitch-shift" name="pitch_shift" value="4" min="-12" max="12">
+        </div>
+
+        <div class="input-group">
+          <label for="time-stretch">Time Stretch Rate:</label>
+          <input type="number" id="time-stretch" name="time_stretch" value="0.15" min="0.1" step="0.05">
+        </div>
+
+        <div class="input-group">
+          <label for="lowcut">Lowcut Frequency (Hz):</label>
+          <input type="number" id="lowcut" name="lowcut" value="300" min="20" max="1000">
+        </div>
+
+        <div class="input-group">
+          <label for="highcut">Highcut Frequency (Hz):</label>
+          <input type="number" id="highcut" name="highcut" value="3000" min="1000" max="8000">
+        </div>
+
+        <button type="submit">Generate Tune</button>
+      </form>
+
+      <!-- Progress Bar -->
+      <div id="progress-container">
+        <div id="progress-bar"></div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      {% if output_file and input_file %}
+        <h2>Original Audio</h2>
+        <div id="waveform-original"></div>
+        <audio controls id="audio-original">
+          <source src="{{ url_for('static', filename=input_file) }}" type="audio/mp3">
+          Your browser does not support the audio element.
+        </audio>
+
+        <h2>Generated Output</h2>
+        <div id="waveform-generated"></div>
+        <audio controls id="audio-generated">
+          <source src="{{ url_for('static', filename=output_file) }}" type="audio/mp3">
+          Your browser does not support the audio element.
+        </audio>
+        <!-- Download Button -->
+        <a href="{{ url_for('static', filename=output_file) }}" download>
+          <button class="download-btn">Download Generated Tune</button>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://unpkg.com/wavesurfer.js@7"></script>
+  <script>
+    const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+
+    socket.on('progress', function(data) {
+      const progressBar = document.getElementById('progress-bar');
+      progressBar.style.width = data.progress + '%';
+    });
+
+    {% if output_file and input_file %}
+      // Initialize WaveSurfer for original audio without playback interference
+      const wavesurferOriginal = WaveSurfer.create({
+        container: '#waveform-original',
+        waveColor: '#ffcc00',
+        progressColor: '#4CAF50',
+        height: 100,
+        barWidth: 2,
+        responsive: true,
+        normalize: true,
+        interact: false, // Disable waveform interaction to avoid audio interference
+        backend: 'MediaElement'
+      });
+
+      const audioOriginal = document.getElementById('audio-original');
+      wavesurferOriginal.load('{{ url_for('static', filename=input_file) }}');
+
+      // Sync waveform with audio playback
+      wavesurferOriginal.on('ready', () => {
+        audioOriginal.addEventListener('timeupdate', () => {
+          const currentTime = audioOriginal.currentTime;
+          wavesurferOriginal.seekTo(currentTime / wavesurferOriginal.getDuration());
+        });
+      });
+
+      // Initialize WaveSurfer for generated audio
+      const wavesurferGenerated = WaveSurfer.create({
+        container: '#waveform-generated',
+        waveColor: '#ffcc00',
+        progressColor: '#4CAF50',
+        height: 100,
+        barWidth: 2,
+        responsive: true,
+        normalize: true,
+        interact: false, // Disable waveform interaction
+        backend: 'MediaElement'
+      });
+
+      const audioGenerated = document.getElementById('audio-generated');
+      wavesurferGenerated.load('{{ url_for('static', filename=output_file) }}');
+
+      // Sync waveform with generated audio playback
+      wavesurferGenerated.on('ready', () => {
+        audioGenerated.addEventListener('timeupdate', () => {
+          const currentTime = audioGenerated.currentTime;
+          wavesurferGenerated.seekTo(currentTime / wavesurferGenerated.getDuration());
+        });
+      });
+
+      // Error handling for waveform loading
+      wavesurferOriginal.on('error', (err) => {
+        console.error('WaveSurfer original error:', err);
+      });
+      wavesurferGenerated.on('error', (err) => {
+        console.error('WaveSurfer generated error:', err);
+      });
+
+      // Ensure clean audio playback
+      audioOriginal.addEventListener('play', () => {
+        wavesurferOriginal.seekTo(audioOriginal.currentTime / wavesurferOriginal.getDuration());
+      });
+      audioGenerated.addEventListener('play', () => {
+        wavesurferGenerated.seekTo(audioGenerated.currentTime / wavesurferGenerated.getDuration());
+      });
+    {% endif %}
+  </script>
+</body>
+</html>
