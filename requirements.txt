@@ -7,5 +7,3 @@ scipy
 librosa
 soundfile
 pydub
-python-socketio
-python-engineio
