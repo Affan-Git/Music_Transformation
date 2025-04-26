@@ -1,0 +1,9 @@
+Flask
+Flask-SocketIO
+eventlet
+librosa
+soundfile
+pydub
+scipy
+numpy
+gunicorn
