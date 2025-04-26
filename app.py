@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch()
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_socketio import SocketIO, emit
@@ -11,7 +13,7 @@ import uuid
 import shutil
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode='eventlet')  # added async_mode=eventlet
 
 app.secret_key = 'your_secret_key'
 
@@ -54,26 +56,18 @@ def index():
             return render_template('index.html', output_file=output_file, input_file=input_file)
 
         if uploaded_file and uploaded_file.filename.endswith('.mp3'):
-            # Generate unique filename to prevent overwrites
             unique_id = str(uuid.uuid4())
             filename = f"{unique_id}_{uploaded_file.filename}"
             input_file = os.path.join('input', filename).replace('\\', '/')
             mp3_path = os.path.join('static', input_file).replace('\\', '/')
 
-            # Save original file directly without any processing
-            with open(mp3_path, 'wb') as f:
-                f.write(uploaded_file.read())
+            # Save original file
+            uploaded_file.save(mp3_path)
             flash('File uploaded successfully!', 'success')
             socketio.emit('progress', {'progress': 5})
 
             try:
-                # Load audio for processing (use a fresh copy to avoid altering original)
-                uploaded_file.seek(0)  # Reset file pointer
-                temp_path = mp3_path + '.temp.mp3'
-                with open(temp_path, 'wb') as f:
-                    f.write(uploaded_file.read())
-                y, sr = librosa.load(temp_path, sr=None)
-                os.remove(temp_path)  # Clean up temp file
+                y, sr = librosa.load(mp3_path, sr=None)
                 socketio.emit('progress', {'progress': 15})
 
                 # Pitch shifting
